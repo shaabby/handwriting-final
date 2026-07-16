@@ -29,6 +29,13 @@ RAW_FILES = [
 ]
 
 
+def _remove_mnist_archives(data_path: Path) -> None:
+    for filename in MNIST_URLS:
+        archive_path = data_path / filename
+        if archive_path.exists():
+            archive_path.unlink()
+
+
 def prepare_mnist(data_dir: str | Path) -> Path:
     """Download and extract MNIST IDX files when they are missing."""
 
@@ -36,6 +43,7 @@ def prepare_mnist(data_dir: str | Path) -> Path:
     data_path.mkdir(parents=True, exist_ok=True)
 
     if all((data_path / name).exists() for name in RAW_FILES):
+        _remove_mnist_archives(data_path)
         return data_path
 
     for filename, url in MNIST_URLS.items():
@@ -49,10 +57,12 @@ def prepare_mnist(data_dir: str | Path) -> Path:
             print(f"Extracting {filename} ...")
             with gzip.open(gz_path, "rb") as src, raw_path.open("wb") as dst:
                 shutil.copyfileobj(src, dst)
+            gz_path.unlink()
 
     missing = [name for name in RAW_FILES if not (data_path / name).exists()]
     if missing:
         raise FileNotFoundError(f"Missing MNIST files: {missing}")
+    _remove_mnist_archives(data_path)
     return data_path
 
 
