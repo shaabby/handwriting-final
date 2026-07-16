@@ -1,4 +1,4 @@
-"""Train and evaluate a compact ViT on MNIST with MindSpore."""
+"""Train and evaluate ViT or CNN models on MNIST with MindSpore."""
 
 from __future__ import annotations
 
@@ -17,12 +17,14 @@ import mindspore.ops as ops
 import numpy as np
 from mindspore import Tensor, context
 
+from src.vit_mnist.cnn import cnn_mnist
 from src.vit_mnist.dataset import create_datasets
 from src.vit_mnist.model import vit_mnist
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Train a compact ViT on MNIST.")
+    parser = argparse.ArgumentParser(description="Train ViT or CNN models on MNIST.")
+    parser.add_argument("--model", default="vit", choices=["vit", "cnn"], help="Model architecture to train.")
     parser.add_argument("--data-dir", default="./data/MNIST", help="Directory containing or receiving MNIST IDX files.")
     parser.add_argument("--output-dir", default="./outputs", help="Directory for checkpoints and reports.")
     parser.add_argument("--device-target", default="Ascend", choices=["Ascend", "GPU", "CPU"])
@@ -150,6 +152,14 @@ def save_confusion_matrix(output_dir: Path, confusion: np.ndarray) -> None:
     plt.close(fig)
 
 
+def create_model(name: str) -> nn.Cell:
+    if name == "vit":
+        return vit_mnist()
+    if name == "cnn":
+        return cnn_mnist()
+    raise ValueError(f"Unsupported model: {name}")
+
+
 def main() -> None:
     args = parse_args()
     set_runtime(args)
@@ -162,7 +172,7 @@ def main() -> None:
         num_parallel_workers=args.num_workers,
     )
 
-    net = vit_mnist()
+    net = create_model(args.model)
     loss_fn = nn.CrossEntropyLoss()
     optimizer = nn.AdamWeightDecay(
         params=net.trainable_params(),
@@ -172,7 +182,7 @@ def main() -> None:
 
     best_val_acc = -1.0
     best_epoch = 0
-    best_ckpt = output_dir / "best_vit_mnist.ckpt"
+    best_ckpt = output_dir / f"best_{args.model}_mnist.ckpt"
     metrics = []
 
     for epoch in range(1, args.epochs + 1):
@@ -212,6 +222,7 @@ def main() -> None:
     save_confusion_matrix(output_dir, confusion)
 
     summary = (
+        f"Model: {args.model}\n"
         f"Best epoch: {best_epoch}\n"
         f"Best val accuracy: {best_val_acc:.6f}\n"
         f"Test loss: {test_loss:.6f}\n"

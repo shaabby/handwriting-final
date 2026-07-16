@@ -1,13 +1,14 @@
-# Transformer MNIST Handwriting Recognition
+# MNIST Handwriting Recognition
 
-This project implements a compact Vision Transformer in MindSpore for MNIST
-digit classification on a single Ascend device.
+This project implements compact ViT and CNN models in MindSpore for MNIST digit
+classification on a single Ascend device.
 
 ## Files
 
 - `src/vit_mnist/dataset.py`: MNIST download, split, preprocessing, and dataloaders.
 - `src/vit_mnist/model.py`: Patch embedding, multi-head self-attention,
   Transformer encoder, and ViT classifier.
+- `src/vit_mnist/cnn.py`: LeNet-style CNN baseline.
 - `train.py`: training, validation, checkpointing, curve plotting, confusion
   matrix, and final test evaluation.
 
@@ -16,7 +17,8 @@ digit classification on a single Ascend device.
 Use the platform-provided Python and MindSpore environment directly.
 
 ```bash
-python train.py --data-dir ./data/MNIST --output-dir ./outputs --device-target Ascend
+python train.py --model vit --data-dir ./data/MNIST --output-dir ./outputs/vit --device-target Ascend
+python train.py --model cnn --data-dir ./data/MNIST --output-dir ./outputs/cnn --device-target Ascend
 ```
 
 The script downloads MNIST if the raw files are missing. If the cloud image has
@@ -55,11 +57,28 @@ dropout = 0.1
 num_classes = 10
 ```
 
+CNN configuration:
+
+```text
+1x28x28
+Conv 3x3, 32 channels
+ReLU
+MaxPool 2x2
+Conv 3x3, 64 channels
+ReLU
+MaxPool 2x2
+Flatten
+Dense 128
+ReLU
+Dropout 0.1
+Dense 10
+```
+
 ## Outputs
 
 `train.py` writes the following files to `--output-dir`:
 
-- `best_vit_mnist.ckpt`
+- `best_vit_mnist.ckpt` or `best_cnn_mnist.ckpt`
 - `metrics.csv`
 - `curves.png`
 - `confusion_matrix.csv`
